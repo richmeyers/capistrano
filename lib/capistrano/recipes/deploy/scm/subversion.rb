@@ -24,10 +24,18 @@ module Capistrano
           scm :checkout, arguments, verbose, authentication, "-r#{revision}", repository, destination
         end
 
-        # Returns the command that will do an "svn update" to the given
+        # Returns the command that will do an "svn switch" to the given
         # revision, for the working copy at the given destination.
         def sync(revision, destination)
-          scm :update, arguments, verbose, authentication, "-r#{revision}", destination
+          # Subversion supports revision pegging in switch starting with 1.5.0.
+          # Before that we can only hope that the path being synced to exists
+          # in the currently checked out version.
+          scm_min_version = scm_min_version = variable(:scm_min_version)
+          if scm_min_version && scm_min_version >= '1.5.0'
+            scm :switch , arguments, verbose, authentication, "-r#{revision}", "#{repository}@#{revision}", destination
+          else
+            scm :switch , arguments, verbose, authentication, "-r#{revision}", repository, destination
+          end
         end
 
         # Returns the command that will do an "svn export" of the given revision
